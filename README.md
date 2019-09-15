@@ -54,6 +54,7 @@ We also provide the organized dataset we used as in the above directory structur
 Link: from [baidu cloud](https://pan.baidu.com/s/1jIp9t30oYivrAvrgUgIoLQ) Password: ruck
 
 ## Training
+We trained Mobilenet0.25 on imagenet dataset and get 46.75%  in top 1. We use it as pretrain model  which has been put in repository named ``model_best.pth.tar``.
 1. Before training, you can check the mobilenet*0.25 network configuration (e.g. batch_size, min_sizes and steps etc..) in ``data/config.py and train.py``.
 
 2. Train the model using WIDER FACE:
