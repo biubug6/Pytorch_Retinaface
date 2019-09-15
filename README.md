@@ -8,7 +8,7 @@ A [PyTorch](https://pytorch.org/) implementation of [RetinaFace: Single-stage De
 | PyTorch (same parameter with Mxnet) | 86.85 % | 85.84% | 79.69% |
 | Pytorch (original image scale) | 90.58 % | 87.94% | 73.96% |
 | Original Mxnet | - | - | 79.1% |
-<p align="center"><img src="curve/r_3.jpg" width="640"\></p>
+<p align="center"><img src="curve/r_3.png" width="640"\></p>
 
 ## FDDB Performance When using Mobilenet0.25 as backbone net.
 | Dataset | performace |
@@ -63,8 +63,8 @@ Link: from [baidu cloud](https://pan.baidu.com/s/1jIp9t30oYivrAvrgUgIoLQ) Passwo
 
 If you do not wish to train the model, we also provide trained model in `./weights/Final_Retinaface.pth`.
 
-
-## Evaluation widerface val
+## Evaluation
+### Evaluation widerface val
 1. Generate txt file
 ```Shell
 python test_widerface.py --trained_model weight_file
@@ -76,7 +76,7 @@ python setup.py build_ext --inplace
 python evaluation.py
 ```
 3. You can also use widerface official Matlab evaluate demo in [Here](http://mmlab.ie.cuhk.edu.hk/projects/WIDERFace/WiderFace_Results.html)
-## Evaluation FDDB
+### Evaluation FDDB
 
 1. Download the images [FDDB](https://drive.google.com/open?id=17t4WULUDgZgiSy5kpCax4aooyPaz3GQH) to:
 ```Shell
