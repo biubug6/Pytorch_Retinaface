@@ -5,7 +5,7 @@ A [PyTorch](https://pytorch.org/) implementation of [RetinaFace: Single-stage De
 ## WiderFace Val Performance in single scale When using Mobilenet0.25 as backbone net.
 | Style | easy | medium | hard |
 |:-|:-:|:-:|:-:|
-| PyTorch (same parameter with Mxnet) | 86.85 % | 85.84% | 79.69% |
+| Pytorch (same parameter with Mxnet) | 86.85 % | 85.84% | 79.69% |
 | Pytorch (original image scale) | 90.58 % | 87.94% | 73.96% |
 | Original Mxnet | - | - | 79.1% |
 <p align="center"><img src="curve/r_3.png" width="640"\></p>
