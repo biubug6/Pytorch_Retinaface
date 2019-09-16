@@ -98,7 +98,6 @@ python test.py --dataset FDDB
 ## References
 - [FaceBoxes](https://github.com/zisianw/FaceBoxes.PyTorch)
 - [Retinaface (mxnet)](https://github.com/deepinsight/insightface/tree/master/RetinaFace)
-- [WiderFace Evaluate](https://github.com/wondervictor/WiderFace-Evaluation)
 ```
 @inproceedings{deng2019retinaface,
 title={RetinaFace: Single-stage Dense Face Localisation in the Wild},
