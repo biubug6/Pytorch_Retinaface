@@ -70,7 +70,7 @@ If you do not wish to train the model, we also provide trained model in `./weigh
 ```Shell
 python test_widerface.py --trained_model weight_file
 ```
-2. Evaluate txt results. Python evaluate txt results from [Here](https://github.com/wondervictor/WiderFace-Evaluation)
+2. Evaluate txt results. Demo come from [Here](https://github.com/wondervictor/WiderFace-Evaluation)
 ```Shell
 cd ./widerface_evaluate
 python setup.py build_ext --inplace
@@ -98,6 +98,7 @@ python test.py --dataset FDDB
 ## References
 - [FaceBoxes](https://github.com/zisianw/FaceBoxes.PyTorch)
 - [Retinaface (mxnet)](https://github.com/deepinsight/insightface/tree/master/RetinaFace)
+- [WiderFace Evaluate](https://github.com/wondervictor/WiderFace-Evaluation)
 ```
 @inproceedings{deng2019retinaface,
 title={RetinaFace: Single-stage Dense Face Localisation in the Wild},
