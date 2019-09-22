@@ -11,7 +11,7 @@ A [PyTorch](https://pytorch.org/) implementation of [RetinaFace: Single-stage De
 <p align="center"><img src="curve/r_3.png" width="640"\></p>
 
 ## FDDB Performance When using Mobilenet0.25 as backbone net.
-| Dataset | performace |
+| Dataset | performance |
 |:-|:-:|
 | FDDB(pytorch) | 97.93% |
 <p align="center"><img src="curve/FDDB_DiscROC.png" width="640"\></p>
