@@ -7,7 +7,8 @@ A [PyTorch](https://pytorch.org/) implementation of [RetinaFace: Single-stage De
 |:-|:-:|:-:|:-:|
 | Pytorch (same parameter with Mxnet) | 86.85 % | 85.84% | 79.69% |
 | Pytorch (original image scale) | 90.58 % | 87.94% | 73.96% |
-| Original Mxnet | - | - | 79.1% |
+| Mxnet | 88.72% | 86.97% | 79.19% |
+| Mxnet(original image scale) | 89.58% | 87.11% | 69.12% |
 <p align="center"><img src="curve/r_3.png" width="640"\></p>
 
 ## FDDB Performance When using Mobilenet0.25 as backbone net.
