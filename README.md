@@ -2,6 +2,16 @@
 
 A [PyTorch](https://pytorch.org/) implementation of [RetinaFace: Single-stage Dense Face Localisation in the Wild](https://arxiv.org/abs/1905.00641). Model size only 1.7M, when Retinaface use mobilenet0.25 as backbone net. The official code in Mxnet can be found [here](https://github.com/deepinsight/insightface/tree/master/RetinaFace).
 
+## WiderFace Val Performance in single scale When using Resnet50 as backbone net.
+| Style | easy | medium | hard |
+|:-|:-:|:-:|:-:|
+| Pytorch (same parameter with Mxnet) | 94.47 % | 93.54% | 89.21% |
+| Pytorch (original image scale) | 95.55 % | 94.09% | 84.05% |
+| Mxnet | 94.86% | 93.87% | 88.33% |
+| Mxnet(original image scale) | 94.97% | 93.89% | 82.27% |
+
+ps: The resnet50-based demo will be updated recently.
+
 ## WiderFace Val Performance in single scale When using Mobilenet0.25 as backbone net.
 | Style | easy | medium | hard |
 |:-|:-:|:-:|:-:|
