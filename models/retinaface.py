@@ -121,5 +121,5 @@ class RetinaFace(nn.Module):
         if self.phase == 'train':
             output = (bbox_regressions, classifications, ldm_regressions)
         else:
-            output = (bbox_regressions, F.softmax(classifications, dim=-1), ldm_regressions)
+            output = (bbox_regressions, F.softmax(classifications, dim=-1).select(2, 1), ldm_regressions)
         return output
