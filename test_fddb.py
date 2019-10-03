@@ -4,7 +4,7 @@ import argparse
 import torch
 import torch.backends.cudnn as cudnn
 import numpy as np
-from data import cfg
+from data import cfg_mnet, cfg_re50
 from layers.functions.prior_box import PriorBox
 from utils.nms.py_cpu_nms import py_cpu_nms
 import cv2
@@ -14,16 +14,17 @@ from utils.timer import Timer
 
 parser = argparse.ArgumentParser(description='Retinaface')
 
-parser.add_argument('-m', '--trained_model', default='./weights/Final_Retinaface.pth',
+parser.add_argument('-m', '--trained_model', default='./weights/mobilenet0.25_Final.pth',
                     type=str, help='Trained state_dict file path to open')
+parser.add_argument('--network', default='mobile0.25', help='Backbone network mobile0.25 or resnet50')
 parser.add_argument('--save_folder', default='eval/', type=str, help='Dir to save results')
 parser.add_argument('--cpu', action="store_true", default=False, help='Use cpu inference')
-parser.add_argument('--dataset', default='FDDB', type=str, choices=['AFW', 'PASCAL', 'FDDB'], help='dataset')
-parser.add_argument('--confidence_threshold', default=0.05, type=float, help='confidence_threshold')
+parser.add_argument('--dataset', default='FDDB', type=str, choices=['FDDB'], help='dataset')
+parser.add_argument('--confidence_threshold', default=0.02, type=float, help='confidence_threshold')
 parser.add_argument('--top_k', default=5000, type=int, help='top_k')
-parser.add_argument('--nms_threshold', default=0.3, type=float, help='nms_threshold')
+parser.add_argument('--nms_threshold', default=0.4, type=float, help='nms_threshold')
 parser.add_argument('--keep_top_k', default=750, type=int, help='keep_top_k')
-parser.add_argument('-s', '--save_image', action="store_true", default=True, help='show detection results')
+parser.add_argument('-s', '--save_image', action="store_true", default=False, help='show detection results')
 parser.add_argument('--vis_thres', default=0.5, type=float, help='visualization_threshold')
 args = parser.parse_args()
 
@@ -66,8 +67,13 @@ def load_model(model, pretrained_path, load_to_cpu):
 
 if __name__ == '__main__':
     torch.set_grad_enabled(False)
+    cfg = None
+    if args.network == "mobile0.25":
+        cfg = cfg_mnet
+    elif args.network == "resnet50":
+        cfg = cfg_re50
     # net and model
-    net = RetinaFace(phase="test")
+    net = RetinaFace(cfg=cfg, phase = 'test')
     net = load_model(net, args.trained_model, args.cpu)
     net.eval()
     print('Finished loading model!')
@@ -137,7 +143,8 @@ if __name__ == '__main__':
         scores = scores[inds]
 
         # keep top-K before NMS
-        order = scores.argsort()[::-1][:args.top_k]
+        # order = scores.argsort()[::-1][:args.top_k]
+        order = scores.argsort()[::-1]
         boxes = boxes[order]
         landms = landms[order]
         scores = scores[order]
@@ -145,13 +152,13 @@ if __name__ == '__main__':
         # do NMS
         dets = np.hstack((boxes, scores[:, np.newaxis])).astype(np.float32, copy=False)
         keep = py_cpu_nms(dets, args.nms_threshold)
-        # keep = nms(dets, args.nms_threshold,force_cpu=args.cpu)
+
         dets = dets[keep, :]
         landms = landms[keep]
 
         # keep top-K faster NMS
-        dets = dets[:args.keep_top_k, :]
-        landms = landms[:args.keep_top_k, :]
+        # dets = dets[:args.keep_top_k, :]
+        # landms = landms[:args.keep_top_k, :]
 
         dets = np.concatenate((dets, landms), axis=1)
         _t['misc'].toc()
@@ -170,15 +177,6 @@ if __name__ == '__main__':
                 h = ymax - ymin + 1
                 # fw.write('{:.3f} {:.3f} {:.3f} {:.3f} {:.10f}\n'.format(xmin, ymin, w, h, score))
                 fw.write('{:d} {:d} {:d} {:d} {:.10f}\n'.format(int(xmin), int(ymin), int(w), int(h), score))
-        else:
-            for k in range(dets.shape[0]):
-                xmin = dets[k, 0]
-                ymin = dets[k, 1]
-                xmax = dets[k, 2]
-                ymax = dets[k, 3]
-                ymin += 0.2 * (ymax - ymin + 1)
-                score = dets[k, 4]
-                fw.write('{:s} {:.3f} {:.1f} {:.1f} {:.1f} {:.1f}\n'.format(img_name, score, xmin, ymin, xmax, ymax))
         print('im_detect: {:d}/{:d} forward_pass_time: {:.4f}s misc: {:.4f}s'.format(i + 1, num_images, _t['forward_pass'].average_time, _t['misc'].average_time))
 
         # show image
@@ -195,11 +193,11 @@ if __name__ == '__main__':
                             cv2.FONT_HERSHEY_DUPLEX, 0.5, (255, 255, 255))
 
                 # landms
-                cv2.circle(img_raw, (b[5], b[6]), 4, (0, 0, 255), 4)
-                cv2.circle(img_raw, (b[7], b[8]), 4, (0, 255, 255), 4)
-                cv2.circle(img_raw, (b[9], b[10]), 4, (255, 0, 255), 4)
-                cv2.circle(img_raw, (b[11], b[12]), 4, (0, 255, 0), 4)
-                cv2.circle(img_raw, (b[13], b[14]), 4, (255, 0, 0), 4)
+                cv2.circle(img_raw, (b[5], b[6]), 1, (0, 0, 255), 4)
+                cv2.circle(img_raw, (b[7], b[8]), 1, (0, 255, 255), 4)
+                cv2.circle(img_raw, (b[9], b[10]), 1, (255, 0, 255), 4)
+                cv2.circle(img_raw, (b[11], b[12]), 1, (0, 255, 0), 4)
+                cv2.circle(img_raw, (b[13], b[14]), 1, (255, 0, 0), 4)
             # save image
             if not os.path.exists("./results/"):
                 os.makedirs("./results/")

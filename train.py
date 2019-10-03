@@ -5,7 +5,7 @@ import torch.optim as optim
 import torch.backends.cudnn as cudnn
 import argparse
 import torch.utils.data as data
-from data import WiderFaceDetection, detection_collate, preproc, cfg
+from data import WiderFaceDetection, detection_collate, preproc, cfg_mnet, cfg_re50
 from layers.modules import MultiBoxLoss
 from layers.functions.prior_box import PriorBox
 import time
@@ -15,39 +15,43 @@ from models.retinaface import RetinaFace
 
 parser = argparse.ArgumentParser(description='Retinaface Training')
 parser.add_argument('--training_dataset', default='./data/widerface/train/label.txt', help='Training dataset directory')
-parser.add_argument('-b', '--batch_size', default=32, type=int, help='Batch size for training')
+parser.add_argument('--network', default='mobile0.25', help='Backbone network mobile0.25 or resnet50')
 parser.add_argument('--num_workers', default=4, type=int, help='Number of workers used in dataloading')
-parser.add_argument('--ngpu', default=1, type=int, help='gpus')
 parser.add_argument('--lr', '--learning-rate', default=1e-3, type=float, help='initial learning rate')
 parser.add_argument('--momentum', default=0.9, type=float, help='momentum')
 parser.add_argument('--resume_net', default=None, help='resume net for retraining')
 parser.add_argument('--resume_epoch', default=0, type=int, help='resume iter for retraining')
-parser.add_argument('-max', '--max_epoch', default=300, type=int, help='max epoch for retraining')
 parser.add_argument('--weight_decay', default=5e-4, type=float, help='Weight decay for SGD')
 parser.add_argument('--gamma', default=0.1, type=float, help='Gamma update for SGD')
 parser.add_argument('--save_folder', default='./weights/', help='Location to save checkpoint models')
-parser.add_argument('--img_dim', default=640, help='Input shape when training')
+
 args = parser.parse_args()
 
 if not os.path.exists(args.save_folder):
     os.mkdir(args.save_folder)
+cfg = None
+if args.network == "mobile0.25":
+    cfg = cfg_mnet
+elif args.network == "resnet50":
+    cfg = cfg_re50
 
 rgb_mean = (104, 117, 123) # bgr order
 num_classes = 2
-img_dim = args.img_dim
-num_gpu = args.ngpu
+img_dim = cfg['image_size']
+num_gpu = cfg['ngpu']
+batch_size = cfg['batch_size']
+max_epoch = cfg['epoch']
+gpu_train = cfg['gpu_train']
+
 num_workers = args.num_workers
-batch_size = args.batch_size
 momentum = args.momentum
 weight_decay = args.weight_decay
 initial_lr = args.lr
 gamma = args.gamma
-max_epoch = args.max_epoch
 training_dataset = args.training_dataset
 save_folder = args.save_folder
-gpu_train = cfg['gpu_train']
 
-net = RetinaFace()
+net = RetinaFace(cfg=cfg)
 print("Printing net...")
 print(net)
 
@@ -67,11 +71,12 @@ if args.resume_net is not None:
     net.load_state_dict(new_state_dict)
 
 if num_gpu > 1 and gpu_train:
-    net = torch.nn.DataParallel(net, device_ids=list(range(num_gpu)))
+    net = torch.nn.DataParallel(net).cuda()
+else:
+    net = net.cuda()
 
-device = torch.device('cuda:0' if gpu_train else 'cpu')
 cudnn.benchmark = True
-net = net.to(device)
+
 
 optimizer = optim.SGD(net.parameters(), lr=initial_lr, momentum=momentum, weight_decay=weight_decay)
 criterion = MultiBoxLoss(num_classes, 0.35, True, 0, True, 7, 0.35, False)
@@ -79,7 +84,7 @@ criterion = MultiBoxLoss(num_classes, 0.35, True, 0, True, 7, 0.35, False)
 priorbox = PriorBox(cfg, image_size=(img_dim, img_dim))
 with torch.no_grad():
     priors = priorbox.forward()
-    priors = priors.to(device)
+    priors = priors.cuda()
 
 def train():
     net.train()
@@ -91,7 +96,7 @@ def train():
     epoch_size = math.ceil(len(dataset) / batch_size)
     max_iter = max_epoch * epoch_size
 
-    stepvalues = (200 * epoch_size, 250 * epoch_size)
+    stepvalues = (cfg['decay1'] * epoch_size, cfg['decay2'] * epoch_size)
     step_index = 0
 
     if args.resume_epoch > 0:
@@ -103,8 +108,8 @@ def train():
         if iteration % epoch_size == 0:
             # create batch iterator
             batch_iterator = iter(data.DataLoader(dataset, batch_size, shuffle=True, num_workers=num_workers, collate_fn=detection_collate))
-            if (epoch % 10 == 0 and epoch > 0) or (epoch % 5 == 0 and epoch > 200):
-                torch.save(net.state_dict(), save_folder + 'Retinaface_epoch_' + str(epoch) + '.pth')
+            if (epoch % 10 == 0 and epoch > 0) or (epoch % 5 == 0 and epoch > cfg['decay1']):
+                torch.save(net.state_dict(), save_folder + cfg['name']+ '_epoch_' + str(epoch) + '.pth')
             epoch += 1
 
         load_t0 = time.time()
@@ -114,8 +119,8 @@ def train():
 
         # load train data
         images, targets = next(batch_iterator)
-        images = images.to(device)
-        targets = [anno.to(device) for anno in targets]
+        images = images.cuda()
+        targets = [anno.cuda() for anno in targets]
 
         # forward
         out = net(images)
@@ -133,7 +138,8 @@ def train():
               .format(epoch, max_epoch, (iteration % epoch_size) + 1,
               epoch_size, iteration + 1, max_iter, loss_l.item(), loss_c.item(), loss_landm.item(), lr, batch_time, str(datetime.timedelta(seconds=eta))))
 
-    torch.save(net.state_dict(), save_folder + 'Final_Retinaface.pth')
+    torch.save(net.state_dict(), save_folder + cfg['name'] + '_Final.pth')
+    # torch.save(net.state_dict(), save_folder + 'Final_Retinaface.pth')
 
 
 def adjust_learning_rate(optimizer, gamma, epoch, step_index, iteration, epoch_size):

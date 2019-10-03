@@ -1,14 +1,13 @@
 import torch
 import torch.nn as nn
 import torchvision.models.detection.backbone_utils as backbone_utils
-import torchvision.models.resnet as resnet
 import torchvision.models._utils as _utils
 import torch.nn.functional as F
 from collections import OrderedDict
 
-from models.mobilev1 import MobileNetV1 as MobileNetV1
-from models.mobilev1 import FPN as FPN
-from models.mobilev1 import SSH as SSH
+from models.net import MobileNetV1 as MobileNetV1
+from models.net import FPN as FPN
+from models.net import SSH as SSH
 
 
 
@@ -17,14 +16,10 @@ class ClassHead(nn.Module):
         super(ClassHead,self).__init__()
         self.num_anchors = num_anchors
         self.conv1x1 = nn.Conv2d(inchannels,self.num_anchors*2,kernel_size=(1,1),stride=1,padding=0)
-        # self.output_act = nn.LogSoftmax(dim=-1)
 
     def forward(self,x):
         out = self.conv1x1(x)
         out = out.permute(0,2,3,1).contiguous()
-        # b, h, w, c = out.shape
-        # out = out.view(b, h, w, self.num_anchors, 2)
-        # out = self.output_act(out)
         
         return out.view(out.shape[0], -1, 2)
 
@@ -51,14 +46,18 @@ class LandmarkHead(nn.Module):
         return out.view(out.shape[0], -1, 10)
 
 class RetinaFace(nn.Module):
-    def __init__(self, phase = 'train', net = 'mnet0.25', return_layers = {'stage1': 1, 'stage2': 2, 'stage3': 3}):
+    def __init__(self, cfg = None, phase = 'train'):
+        """
+        :param cfg:  Network related settings.
+        :param phase: train or test.
+        """
         super(RetinaFace,self).__init__()
         self.phase = phase
         backbone = None
-        if net == 'mnet0.25':
+        if cfg['name'] == 'mobilenet0.25':
             backbone = MobileNetV1()
-            if True:
-                checkpoint = torch.load("model_best.pth.tar", map_location=torch.device('cpu'))
+            if cfg['pretrain']:
+                checkpoint = torch.load("./weights/mobilenetV1X0.25_pretrain.tar", map_location=torch.device('cpu'))
                 from collections import OrderedDict
                 new_state_dict = OrderedDict()
                 for k, v in checkpoint['state_dict'].items():
@@ -66,23 +65,26 @@ class RetinaFace(nn.Module):
                     new_state_dict[name] = v
                 # load params
                 backbone.load_state_dict(new_state_dict)
+        elif cfg['name'] == 'Resnet50':
+            import torchvision.models as models
+            backbone = models.resnet50(pretrained=cfg['pretrain'])
 
-        self.body = _utils.IntermediateLayerGetter(backbone, return_layers)
-        in_channels_stage2 = 32
+        self.body = _utils.IntermediateLayerGetter(backbone, cfg['return_layers'])
+        in_channels_stage2 = cfg['in_channel']
         in_channels_list = [
             in_channels_stage2 * 2,
             in_channels_stage2 * 4,
             in_channels_stage2 * 8,
         ]
-        out_channels = 64
+        out_channels = cfg['out_channel']
         self.fpn = FPN(in_channels_list,out_channels)
         self.ssh1 = SSH(out_channels, out_channels)
         self.ssh2 = SSH(out_channels, out_channels)
         self.ssh3 = SSH(out_channels, out_channels)
 
-        self.ClassHead = self._make_class_head()
-        self.BboxHead = self._make_bbox_head()
-        self.LandmarkHead = self._make_landmark_head()
+        self.ClassHead = self._make_class_head(fpn_num=3, inchannels=cfg['out_channel'])
+        self.BboxHead = self._make_bbox_head(fpn_num=3, inchannels=cfg['out_channel'])
+        self.LandmarkHead = self._make_landmark_head(fpn_num=3, inchannels=cfg['out_channel'])
 
     def _make_class_head(self,fpn_num=3,inchannels=64,anchor_num=2):
         classhead = nn.ModuleList()
