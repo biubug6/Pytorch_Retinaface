@@ -81,6 +81,9 @@ if __name__ == '__main__':
     net = net.to(device)
 
     resize = 1
+    resizedelta = 0.25
+    while img.shape[0] * resize < (cfg['image_size'] * (1 - resizedelta / 2) ):
+        resize += resizedelta
 
     # testing begin
     for i in range(100):
@@ -88,6 +91,9 @@ if __name__ == '__main__':
         img_raw = cv2.imread(image_path, cv2.IMREAD_COLOR)
 
         img = np.float32(img_raw)
+        
+        if resize != 1:
+            img = cv2.resize(img, None, None, fx=resize, fy=resize, interpolation=cv2.INTER_LINEAR)
 
         im_height, im_width, _ = img.shape
         scale = torch.Tensor([img.shape[1], img.shape[0], img.shape[1], img.shape[0]])
