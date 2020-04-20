@@ -33,6 +33,7 @@ We also provide a set of Face Detector for edge device in [here](https://github.
 - [Installation](#installation)
 - [Training](#training)
 - [Evaluation](#evaluation)
+- [TensorRT](#tensorrt)
 - [References](#references)
 
 ## Installation
@@ -112,6 +113,9 @@ python test_fddb.py --trained_model weight_file --network mobile0.25 or resnet50
 3. Download [eval_tool](https://bitbucket.org/marcopede/face-eval) to evaluate the performance.
 
 <p align="center"><img src="curve/1.jpg" width="640"\></p>
+
+## TensorRT
+-[TensorRT](https://github.com/wang-xinyu/tensorrtx/tree/master/retinaface)
 
 ## References
 - [FaceBoxes](https://github.com/zisianw/FaceBoxes.PyTorch)
