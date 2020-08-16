@@ -10,7 +10,7 @@ parser.add_argument('-m', '--trained_model', default='./weights/mobilenet0.25_Fi
                     type=str, help='Trained state_dict file path to open')
 parser.add_argument('--network', default='mobile0.25', help='Backbone network mobile0.25 or resnet50')
 parser.add_argument('--long_side', default=640, help='when origin_size is false, long_side is scaled size(320 or 640 for long side)')
-parser.add_argument('--cpu', action="store_true", default=True, help='Use cpu inference')
+parser.add_argument('--hw', default="cpu", help='device for inference')
 parser.add_argument('--mode', default='onnx', help='export to onnx or torch script')
 parser.add_argument('output')
 
@@ -63,12 +63,13 @@ if __name__ == '__main__':
         cfg = cfg_re50
     # net and model
     net = RetinaFace(cfg=cfg, phase='test')
-    net = load_model(net, args.trained_model, args.cpu)
+    load_to_cpu = args.hw == 'cpu' or args.hw == 'eia'
+    net = load_model(net, args.trained_model, load_to_cpu)
     net.eval()
     print('Finished loading model!')
     print(net)
     if args.mode == 'onnx':
-        device = torch.device("cpu" if args.cpu else "cuda")
+        device = torch.device("cpu" if args.hw == 'cpu' else "cuda")
         net = net.to(device)
 
     # ------------------------ export -----------------------------
@@ -90,6 +91,15 @@ if __name__ == '__main__':
         # torch.jit.save(scripted_model, output_mod)
         inputs = torch.randn(1, 3, args.long_side, args.long_side)
         check_inputs = [torch.randn(1, 3, args.long_side, args.long_side),
-                        torch.randn(1, 3, args.long_side, args.long_side)]
-        traced_model = torch.jit.trace(net, inputs, check_inputs=check_inputs)
+                        torch.randn(2, 3, args.long_side, args.long_side)]
+        if args.hw == 'cpu' or args.hw == 'gpu':
+            device = torch.device("cpu" if args.hw == 'cpu' else "cuda")
+            net = net.to(device)
+            traced_model = torch.jit.trace(net, inputs,
+                                           check_inputs=check_inputs)
+        elif args.hw == 'eia':
+            with torch.jit.optimized_execution(True,
+                                               {'target_device': 'eia:0'}):
+                traced_model = torch.jit.trace(net, inputs,
+                                               check_inputs=check_inputs)
         torch.jit.save(traced_model, output_mod)
