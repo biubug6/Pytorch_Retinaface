@@ -1,3 +1,9 @@
+# Modify
+
+  this repo main difference from original is add negative data train
+
+  you can now add some image path without any annotions in you label.txt,then it can train now!
+
 # RetinaFace in PyTorch
 
 A [PyTorch](https://pytorch.org/) implementation of [RetinaFace: Single-stage Dense Face Localisation in the Wild](https://arxiv.org/abs/1905.00641). Model size only 1.7M, when Retinaface use mobilenet0.25 as backbone net. We also provide resnet50 as backbone net to get better result. The official code in Mxnet can be found [here](https://github.com/deepinsight/insightface/tree/master/RetinaFace).

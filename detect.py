@@ -23,7 +23,9 @@ parser.add_argument('--top_k', default=5000, type=int, help='top_k')
 parser.add_argument('--nms_threshold', default=0.4, type=float, help='nms_threshold')
 parser.add_argument('--keep_top_k', default=750, type=int, help='keep_top_k')
 parser.add_argument('-s', '--save_image', action="store_true", default=True, help='show detection results')
-parser.add_argument('--vis_thres', default=0.6, type=float, help='visualization_threshold')
+parser.add_argument('--vis_thres', default=0.8, type=float, help='visualization_threshold')
+parser.add_argument('-img', '--image', default='./curve/test.jpg',
+                    type=str, help='image')
 args = parser.parse_args()
 
 
@@ -83,8 +85,8 @@ if __name__ == '__main__':
     resize = 1
 
     # testing begin
-    for i in range(100):
-        image_path = "./curve/test.jpg"
+    for i in range(1):
+        image_path = args.image
         img_raw = cv2.imread(image_path, cv2.IMREAD_COLOR)
 
         img = np.float32(img_raw)
@@ -145,6 +147,7 @@ if __name__ == '__main__':
         # show image
         if args.save_image:
             for b in dets:
+                print(b[0],b[1],b[2],b[3],b[4])
                 if b[4] < args.vis_thres:
                     continue
                 text = "{:.4f}".format(b[4])
@@ -165,4 +168,3 @@ if __name__ == '__main__':
 
             name = "test.jpg"
             cv2.imwrite(name, img_raw)
-
