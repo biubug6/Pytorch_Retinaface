@@ -37,19 +37,19 @@ elif args.network == "resnet50":
 
 rgb_mean = (104, 117, 123) # bgr order
 num_classes = 2
-img_dim = cfg['image_size']
-num_gpu = cfg['ngpu']
-batch_size = cfg['batch_size']
-max_epoch = cfg['epoch']
-gpu_train = cfg['gpu_train']
+img_dim = cfg['image_size'] #640
+num_gpu = cfg['ngpu'] # 1
+batch_size = cfg['batch_size'] # 32
+max_epoch = cfg['epoch'] 
+gpu_train = cfg['gpu_train'] #True
 
-num_workers = args.num_workers
-momentum = args.momentum
-weight_decay = args.weight_decay
-initial_lr = args.lr
-gamma = args.gamma
-training_dataset = args.training_dataset
-save_folder = args.save_folder
+num_workers = args.num_workers # 4
+momentum = args.momentum # 0.9
+weight_decay = args.weight_decay # 5e-4
+initial_lr = args.lr # 1e-3
+gamma = args.gamma # 0.1
+training_dataset = args.training_dataset #label.txt
+save_folder = args.save_folder #weights
 
 net = RetinaFace(cfg=cfg)
 print("Printing net...")
