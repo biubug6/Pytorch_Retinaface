@@ -17,7 +17,8 @@ parser = argparse.ArgumentParser(description='Test')
 parser.add_argument('-m', '--trained_model', default='./weights/Resnet50_Final.pth',
                     type=str, help='Trained state_dict file path to open')
 parser.add_argument('--network', default='resnet50', help='Backbone network mobile0.25 or resnet50')
-parser.add_argument('--long_side', default=640, help='when origin_size is false, long_side is scaled size(320 or 640 for long side)')
+parser.add_argument('--long_side', default=640,
+                    help='when origin_size is false, long_side is scaled size(320 or 640 for long side)')
 parser.add_argument('--cpu', action="store_true", default=True, help='Use cpu inference')
 
 args = parser.parse_args()
@@ -82,10 +83,16 @@ if __name__ == '__main__':
     output_names = ["output", "outputt", "outputtt"]
     inputs = torch.randn(1, 3, args.long_side, args.long_side).to(device)
 
-    torch_out = torch.onnx._export(net, inputs, output_onnx, export_params=True, verbose=False,
-                                   input_names=input_names,
-                                   output_names=output_names,
-                                   dynamic_axes={'input': [2, 3], 'output': [2, 3]},
-                                   opset_version=11)
+    torch_out = torch.onnx._export(
+        net,
+        inputs,
+        output_onnx,
+        export_params=True,
+        do_constant_folding=True,
+        verbose=False,
+        input_names=input_names,
+        output_names=output_names,
+        dynamic_axes={'input': [2, 3], 'output': [2, 3], 'outputt': [2, 3], 'outputtt': [2, 3]},
+        opset_version=11)
 
 
