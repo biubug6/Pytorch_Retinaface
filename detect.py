@@ -84,7 +84,7 @@ if __name__ == '__main__':
 
     # testing begin
     for i in range(100):
-        image_path = "./curve/test.jpg"
+        image_path = "/mnt/hdd/CLionProjects/Face-Detector-1MB-with-landmark/Face_Detector_ncnn/sample.jpg"
         img_raw = cv2.imread(image_path, cv2.IMREAD_COLOR)
 
         img = np.float32(img_raw)
@@ -99,6 +99,7 @@ if __name__ == '__main__':
 
         tic = time.time()
         loc, conf, landms = net(img)  # forward pass
+        print(loc)
         print('net forward time: {:.4f}'.format(time.time() - tic))
 
         priorbox = PriorBox(cfg, image_size=(im_height, im_width))
@@ -164,5 +165,6 @@ if __name__ == '__main__':
             # save image
 
             name = "test.jpg"
-            cv2.imwrite(name, img_raw)
+            cv2.imshow(name, img_raw)
+            cv2.waitKey(0)
 
