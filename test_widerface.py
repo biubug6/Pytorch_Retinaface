@@ -14,12 +14,12 @@ from utils.timer import Timer
 
 
 parser = argparse.ArgumentParser(description='Retinaface')
-parser.add_argument('-m', '--trained_model', default='./weights/Resnet50_Final.pth',
+parser.add_argument('-m', '--trained_model', default='/mnt/hdd/PycharmProjects/Pytorch_Retinaface/weights/Resnet50_epoch_90.pth',
                     type=str, help='Trained state_dict file path to open')
 parser.add_argument('--network', default='resnet50', help='Backbone network mobile0.25 or resnet50')
 parser.add_argument('--origin_size', default=False, type=str, help='Whether use origin image size to evaluate')
-parser.add_argument('--save_folder', default='./widerface_evaluate/widerface_txt/', type=str, help='Dir to save txt results')
-parser.add_argument('--cpu', action="store_true", default=True, help='Use cpu inference')
+parser.add_argument('--save_folder', default='/mnt/hdd/PycharmProjects/Pytorch_Retinaface/prediction', type=str, help='Dir to save txt results')
+parser.add_argument('--cpu', action="store_true", default=False, help='Use cpu inference')
 parser.add_argument('--dataset_folder', default='./data/widerface/val/images/', type=str, help='dataset path')
 parser.add_argument('--confidence_threshold', default=0.02, type=float, help='confidence_threshold')
 parser.add_argument('--top_k', default=5000, type=int, help='top_k')
@@ -97,11 +97,11 @@ if __name__ == '__main__':
     # testing begin
     for i, img_name in enumerate(test_dataset):
         image_path = testset_folder + img_name
-        img_raw = cv2.imread("/mnt/hdd/PycharmProjects/Pytorch_Retinaface/curve/test.jpg", cv2.IMREAD_COLOR)
+        img_raw = cv2.imread(image_path, cv2.IMREAD_COLOR)
         img = np.float32(img_raw)
 
         # testing scale
-        target_size = 1600
+        target_size = 640
         # max_size = 2150
         im_shape = img.shape
         im_size_min = np.min(im_shape[0:2])

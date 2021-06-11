@@ -15,7 +15,7 @@ from models.retinaface import RetinaFace
 
 parser = argparse.ArgumentParser(description='Retinaface Training')
 parser.add_argument('--training_dataset', default='./data/widerface/train/label.txt', help='Training dataset directory')
-parser.add_argument('--network', default='mobile0.25', help='Backbone network mobile0.25 or resnet50')
+parser.add_argument('--network', default='resnet50', help='Backbone network mobile0.25 or resnet50')
 parser.add_argument('--num_workers', default=4, type=int, help='Number of workers used in dataloading')
 parser.add_argument('--lr', '--learning-rate', default=1e-3, type=float, help='initial learning rate')
 parser.add_argument('--momentum', default=0.9, type=float, help='momentum')
@@ -130,17 +130,6 @@ def train():
         loss_l, loss_c, loss_landm = criterion(out, priors, targets)
         loss = cfg['loc_weight'] * loss_l + loss_c + loss_landm
         loss.backward()
-
-        print("net.BboxHead[0].conv1x1.weight.grad", net.BboxHead[0].conv1x1.weight.grad)
-        print("net.BboxHead[1].conv1x1.weight.grad", net.BboxHead[1].conv1x1.weight.grad)
-        print("net.BboxHead[2].conv1x1.weight.grad", net.BboxHead[2].conv1x1.weight.grad)
-        print("net.ClassHead[0].conv1x1.weight.grad", net.ClassHead[0].conv1x1.weight.grad)
-        print("net.ClassHead[1].conv1x1.weight.grad", net.ClassHead[1].conv1x1.weight.grad)
-        print("net.ClassHead[2].conv1x1.weight.grad", net.ClassHead[2].conv1x1.weight.grad)
-        print("net.LandmarkHead[0].conv1x1.weight.grad", net.LandmarkHead[0].conv1x1.weight.grad)
-        print("net.LandmarkHead[1].conv1x1.weight.grad", net.LandmarkHead[1].conv1x1.weight.grad)
-        print("net.LandmarkHead[2].conv1x1.weight.grad", net.LandmarkHead[2].conv1x1.weight.grad)
-
         optimizer.step()
         load_t1 = time.time()
         batch_time = load_t1 - load_t0
