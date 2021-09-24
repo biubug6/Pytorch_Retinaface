@@ -1,16 +1,8 @@
 from __future__ import print_function
-import os
 import argparse
 import torch
-import torch.backends.cudnn as cudnn
-import numpy as np
 from data import cfg_mnet, cfg_re50
-from layers.functions.prior_box import PriorBox
-from utils.nms.py_cpu_nms import py_cpu_nms
-import cv2
 from models.retinaface import RetinaFace
-from utils.box_utils import decode, decode_landm
-from utils.timer import Timer
 
 
 parser = argparse.ArgumentParser(description='Test')
@@ -18,7 +10,9 @@ parser.add_argument('-m', '--trained_model', default='./weights/mobilenet0.25_Fi
                     type=str, help='Trained state_dict file path to open')
 parser.add_argument('--network', default='mobile0.25', help='Backbone network mobile0.25 or resnet50')
 parser.add_argument('--long_side', default=640, help='when origin_size is false, long_side is scaled size(320 or 640 for long side)')
-parser.add_argument('--cpu', action="store_true", default=True, help='Use cpu inference')
+parser.add_argument('--hw', default="cpu", help='device for inference')
+parser.add_argument('--mode', default='onnx', help='export to onnx or torch script')
+parser.add_argument('output')
 
 args = parser.parse_args()
 
@@ -60,6 +54,7 @@ def load_model(model, pretrained_path, load_to_cpu):
 
 
 if __name__ == '__main__':
+    args = parser.parse_args()
     torch.set_grad_enabled(False)
     cfg = None
     if args.network == "mobile0.25":
@@ -67,22 +62,44 @@ if __name__ == '__main__':
     elif args.network == "resnet50":
         cfg = cfg_re50
     # net and model
-    net = RetinaFace(cfg=cfg, phase = 'test')
-    net = load_model(net, args.trained_model, args.cpu)
+    net = RetinaFace(cfg=cfg, phase='test')
+    load_to_cpu = args.hw == 'cpu' or args.hw == 'eia'
+    net = load_model(net, args.trained_model, load_to_cpu)
     net.eval()
     print('Finished loading model!')
     print(net)
-    device = torch.device("cpu" if args.cpu else "cuda")
-    net = net.to(device)
+    if args.mode == 'onnx':
+        device = torch.device("cpu" if args.hw == 'cpu' else "cuda")
+        net = net.to(device)
 
     # ------------------------ export -----------------------------
-    output_onnx = 'FaceDetector.onnx'
-    print("==> Exporting model to ONNX format at '{}'".format(output_onnx))
-    input_names = ["input0"]
-    output_names = ["output0"]
-    inputs = torch.randn(1, 3, args.long_side, args.long_side).to(device)
+    if args.mode == 'onnx':
+        output_onnx = args.output
+        print("==> Exporting model to ONNX format at '{}'".format(output_onnx))
+        input_names = ["input0"]
+        output_names = ["output0"]
+        inputs = torch.randn(1, 3, args.long_side, args.long_side).to(device)
 
-    torch_out = torch.onnx._export(net, inputs, output_onnx, export_params=True, verbose=False,
-                                   input_names=input_names, output_names=output_names)
-
-
+        torch_out = torch.onnx._export(net, inputs, output_onnx,
+                                       export_params=True, verbose=False,
+                                       input_names=input_names,
+                                       output_names=output_names,
+                                       opset_version=11)
+    elif args.mode == 'tscript':
+        output_mod = args.output
+        # scripted_model = torch.jit.script(net)
+        # torch.jit.save(scripted_model, output_mod)
+        inputs = torch.randn(1, 3, args.long_side, args.long_side)
+        check_inputs = [torch.randn(1, 3, args.long_side, args.long_side),
+                        torch.randn(2, 3, args.long_side, args.long_side)]
+        if args.hw == 'cpu' or args.hw == 'gpu':
+            device = torch.device("cpu" if args.hw == 'cpu' else "cuda")
+            net = net.to(device)
+            traced_model = torch.jit.trace(net, inputs,
+                                           check_inputs=check_inputs)
+        elif args.hw == 'eia':
+            with torch.jit.optimized_execution(True,
+                                               {'target_device': 'eia:0'}):
+                traced_model = torch.jit.trace(net, inputs,
+                                               check_inputs=check_inputs)
+        torch.jit.save(traced_model, output_mod)
