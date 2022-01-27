@@ -1,4 +1,4 @@
-cfg_re50 = {
+config = {
     'name': 'Resnet50',
     'min_sizes': [[16, 32], [64, 128], [256, 512]],
     'steps': [8, 16, 32],
