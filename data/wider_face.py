@@ -7,6 +7,8 @@ import cv2
 import numpy as np
 
 class WiderFaceDetection(data.Dataset):
+    # run once when instantiating the Dataset object. We initialize the directory containing the images,
+    # the annotations file, and both transforms
     def __init__(self, txt_path, preproc=None):
         self.preproc = preproc
         self.imgs_path = []
@@ -34,9 +36,14 @@ class WiderFaceDetection(data.Dataset):
 
         self.words.append(labels)
 
+    # return the number of samples in our dataset
     def __len__(self):
         return len(self.imgs_path)
 
+    # loads and returns a sample from the dataset at the given index idx. Based on the index, it identifies the image's
+    # location on disk, converts that to a tensor using read_image, retrieves the correcsponding label from the csv data
+    # in self.img_labels, calls the transform functions on them(if applicable), and returns the tensor image and
+    # corresponding label in a tuple.
     def __getitem__(self, index):
         img = cv2.imread(self.imgs_path[index])
         height, width, _ = img.shape
