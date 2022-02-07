@@ -40,7 +40,6 @@ with torch.no_grad():
 
 
 def train():
-    net.train()
     dataset = WiderFaceDetection(dataset_path, preproc(img_size, rgb_mean))
     # dataset class inherits torch dataset
     # batchsize number of sample per training step
@@ -52,6 +51,7 @@ def train():
     # together in batch. If you don't use it, Pytorch only put batch_size examples together as you would using torch.stack
     train_loader = DataLoader(dataset, batch_size, shuffle=True, num_workers=num_workers, collate_fn=detection_collate)
     for epoch in range(max_epoch):
+        net.train()
         for iter_index, (images, targets) in enumerate(train_loader):
             images = images.cuda()
             targets = [anno.cuda() for anno in targets]
@@ -64,7 +64,8 @@ def train():
         scheduler.step()
         print('Epoch:{} Loc: {:.4f} Cla: {:.4f} Landm: {:.4f}'.format(epoch, loss_l.item(), loss_c.item(),
                                                                       loss_landm.item()))
-        torch.save(net.state_dict(), save_folder + config['name'] + '_Final.pth')
+        torch.save(net.state_dict(), save_folder + config['name'] + '_epoch_{}.pth'.format(str(epoch)))
+    torch.save(net.state_dict(), save_folder + config['name'] + '_Final.pth')
 
 
 if __name__ == '__main__':
