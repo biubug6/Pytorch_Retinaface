@@ -1,10 +1,8 @@
-import os
-import os.path
-import sys
 import torch
 import torch.utils.data as data
 import cv2
 import numpy as np
+
 
 class WiderFaceDetection(data.Dataset):
     # run once when instantiating the Dataset object. We initialize the directory containing the images,
@@ -13,7 +11,7 @@ class WiderFaceDetection(data.Dataset):
         self.preproc = preproc
         self.imgs_path = []
         self.words = []
-        f = open(txt_path,'r')
+        f = open(txt_path, 'r')
         lines = f.readlines()
         isFirst = True
         labels = []
@@ -27,7 +25,7 @@ class WiderFaceDetection(data.Dataset):
                     self.words.append(labels_copy)
                     labels.clear()
                 path = line[2:]
-                path = txt_path.replace('label.txt','images/') + path
+                path = txt_path.replace('label.txt', 'images/') + path
                 self.imgs_path.append(path)
             else:
                 line = line.split(' ')
@@ -61,17 +59,17 @@ class WiderFaceDetection(data.Dataset):
             annotation[0, 3] = label[1] + label[3]  # y2
 
             # landmarks
-            annotation[0, 4] = label[4]    # l0_x
-            annotation[0, 5] = label[5]    # l0_y
-            annotation[0, 6] = label[7]    # l1_x
-            annotation[0, 7] = label[8]    # l1_y
-            annotation[0, 8] = label[10]   # l2_x
-            annotation[0, 9] = label[11]   # l2_y
+            annotation[0, 4] = label[4]  # l0_x
+            annotation[0, 5] = label[5]  # l0_y
+            annotation[0, 6] = label[7]  # l1_x
+            annotation[0, 7] = label[8]  # l1_y
+            annotation[0, 8] = label[10]  # l2_x
+            annotation[0, 9] = label[11]  # l2_y
             annotation[0, 10] = label[13]  # l3_x
             annotation[0, 11] = label[14]  # l3_y
             annotation[0, 12] = label[16]  # l4_x
             annotation[0, 13] = label[17]  # l4_y
-            if (annotation[0, 4]<0):
+            if (annotation[0, 4] < 0):
                 annotation[0, 14] = -1
             else:
                 annotation[0, 14] = 1
@@ -82,6 +80,7 @@ class WiderFaceDetection(data.Dataset):
             img, target = self.preproc(img, target)
 
         return torch.from_numpy(img), target
+
 
 def detection_collate(batch):
     """Custom collate fn for dealing with batches of images that have a different

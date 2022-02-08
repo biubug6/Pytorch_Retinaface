@@ -62,8 +62,8 @@ def train():
             loss = cfg['box_weight'] * loss_l + cfg["class_weight"] * loss_c + cfg["landmark_weight"]*loss_landm
             loss.backward()
             optimizer.step()
-            print('Epoch:{} Loc: {:.4f} Cla: {:.4f} Landm: {:.4f}'.format(epoch, loss_l.item(), loss_c.item(),
-                                                                          loss_landm.item()))
+            print('Epoch:{}, Learning rate:{:.4f}, Loc: {:.4f} Cla: {:.4f} Landm: {:.4f}'
+                  .format(epoch, scheduler.get_lr(), loss_l.item(), loss_c.item(), loss_landm.item()))
         scheduler.step()
         torch.save(net.state_dict(), save_folder + cfg['name'] + '_epoch_{}.pth'.format(str(epoch)))
     torch.save(net.state_dict(), save_folder + cfg['name'] + '_Final.pth')

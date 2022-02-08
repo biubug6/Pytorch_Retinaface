@@ -6,7 +6,7 @@ config = {
     "clip": False,
     "box_weight": 2.0,
     "class_weight": 1,
-    "landmark_weight": 1,
+    "landmark_weight": 1.5,
     "batch_size": 4,
     "epoch": 100,
     "image_size": 640,
