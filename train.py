@@ -1,14 +1,17 @@
 import torch
 import torch.optim as optim
-# TODO learn a bit about DataLoader
-from torch.utils.data import DataLoader
+from config import config
 # TODO improve Widerface dataset
+from dataset.wider_face import WiderFaceDetection, detection_collate
 # preproc is the function for performing image augmentation and preprocessing before training
 # detection_collate is Custom collate fn for dealing with batches of images that have a different
 # number of associated object annotations (bounding boxes)
-from data import WiderFaceDetection, detection_collate, preproc, config
+from dataset.data_augment import preproc
+# TODO learn a bit about DataLoader
+from torch.utils.data import DataLoader
+
 # TODO improve MultiBoxLoss
-from layers.modules import MultiBoxLoss
+from models.multibox_loss import MultiBoxLoss
 # TODO improve retinaface model
 from models.retinaface import RetinaFace
 
@@ -19,7 +22,7 @@ num_gpu = config['ngpu']
 batch_size = config['batch_size']
 max_epoch = config['epoch']
 gpu_train = config['gpu_train']
-dataset_path = './data/widerface/train/label.txt'
+dataset_path = 'data/train/label.txt'
 save_folder = './weights/'
 num_workers = 4
 momentum = 0.9
@@ -32,7 +35,7 @@ optimizer = optim.SGD(net.parameters(), lr=initial_lr, momentum=momentum, weight
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=40, gamma=0.5)
 criterion = MultiBoxLoss(num_classes, 0.35, True, 0, True, 7, 0.35, False)
 
-from layers.functions.prior_box import PriorBox
+from utils.prior_box import PriorBox
 priorbox = PriorBox(config, image_size=(img_size, img_size))
 with torch.no_grad():
     priors = priorbox.forward()
@@ -61,9 +64,9 @@ def train():
             loss = config['loc_weight'] * loss_l + loss_c + loss_landm
             loss.backward()
             optimizer.step()
+            print('Epoch:{} Loc: {:.4f} Cla: {:.4f} Landm: {:.4f}'.format(epoch, loss_l.item(), loss_c.item(),
+                                                                          loss_landm.item()))
         scheduler.step()
-        print('Epoch:{} Loc: {:.4f} Cla: {:.4f} Landm: {:.4f}'.format(epoch, loss_l.item(), loss_c.item(),
-                                                                      loss_landm.item()))
         torch.save(net.state_dict(), save_folder + config['name'] + '_epoch_{}.pth'.format(str(epoch)))
     torch.save(net.state_dict(), save_folder + config['name'] + '_Final.pth')
 
