@@ -63,7 +63,7 @@ def train():
             loss.backward()
             optimizer.step()
             print('Epoch:{}, Learning rate:{:.4f}, Loc: {:.4f} Cla: {:.4f} Landm: {:.4f}'
-                  .format(epoch, scheduler.get_lr(), loss_l.item(), loss_c.item(), loss_landm.item()))
+                  .format(epoch, scheduler.get_last_lr()[0], loss_l.item(), loss_c.item(), loss_landm.item()))
         scheduler.step()
         torch.save(net.state_dict(), save_folder + cfg['name'] + '_epoch_{}.pth'.format(str(epoch)))
     torch.save(net.state_dict(), save_folder + cfg['name'] + '_Final.pth')
