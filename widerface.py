@@ -4,7 +4,7 @@ import argparse
 import torch
 import torch.backends.cudnn as cudnn
 import numpy as np
-from data import cfg_mnet, cfg_re50
+from dataset import cfg_mnet, cfg_re50
 from layers.functions.prior_box import PriorBox
 from utils.nms.py_cpu_nms import py_cpu_nms
 import cv2
@@ -12,14 +12,15 @@ from models.retinaface import RetinaFace
 from utils.box_utils import decode, decode_landm
 from utils.timer import Timer
 
-parser = argparse.ArgumentParser(description='Retinaface')
 
-parser.add_argument('-m', '--trained_model', default='./weights/mobilenet0.25_Final.pth',
+parser = argparse.ArgumentParser(description='Retinaface')
+parser.add_argument('-m', '--trained_model', default='/mnt/hdd/PycharmProjects/Pytorch_Retinaface/weights/Resnet50_epoch_90.pth',
                     type=str, help='Trained state_dict file path to open')
-parser.add_argument('--network', default='mobile0.25', help='Backbone network mobile0.25 or resnet50')
-parser.add_argument('--save_folder', default='eval/', type=str, help='Dir to save results')
+parser.add_argument('--network', default='resnet50', help='Backbone network mobile0.25 or resnet50')
+parser.add_argument('--origin_size', default=False, type=str, help='Whether use origin image size to evaluate')
+parser.add_argument('--save_folder', default='/mnt/hdd/PycharmProjects/Pytorch_Retinaface/prediction', type=str, help='Dir to save txt results')
 parser.add_argument('--cpu', action="store_true", default=False, help='Use cpu inference')
-parser.add_argument('--dataset', default='FDDB', type=str, choices=['FDDB'], help='dataset')
+parser.add_argument('--dataset_folder', default='./data/widerface/val/images/', type=str, help='dataset path')
 parser.add_argument('--confidence_threshold', default=0.02, type=float, help='confidence_threshold')
 parser.add_argument('--top_k', default=5000, type=int, help='top_k')
 parser.add_argument('--nms_threshold', default=0.4, type=float, help='nms_threshold')
@@ -67,6 +68,7 @@ def load_model(model, pretrained_path, load_to_cpu):
 
 if __name__ == '__main__':
     torch.set_grad_enabled(False)
+
     cfg = None
     if args.network == "mobile0.25":
         cfg = cfg_mnet
@@ -82,32 +84,45 @@ if __name__ == '__main__':
     device = torch.device("cpu" if args.cpu else "cuda")
     net = net.to(device)
 
-
-    # save file
-    if not os.path.exists(args.save_folder):
-        os.makedirs(args.save_folder)
-    fw = open(os.path.join(args.save_folder, args.dataset + '_dets.txt'), 'w')
-
     # testing dataset
-    testset_folder = os.path.join('data', args.dataset, 'images/')
-    testset_list = os.path.join('data', args.dataset, 'img_list.txt')
+    testset_folder = args.dataset_folder
+    testset_list = args.dataset_folder[:-7] + "wider_val.txt"
+
     with open(testset_list, 'r') as fr:
         test_dataset = fr.read().split()
     num_images = len(test_dataset)
-
-    # testing scale
-    resize = 1
 
     _t = {'forward_pass': Timer(), 'misc': Timer()}
 
     # testing begin
     for i, img_name in enumerate(test_dataset):
-        image_path = testset_folder + img_name + '.jpg'
+        image_path = testset_folder + img_name
         img_raw = cv2.imread(image_path, cv2.IMREAD_COLOR)
-
         img = np.float32(img_raw)
+
+        # testing scale
+        target_size = 640
+        # max_size = 2150
+        im_shape = img.shape
+        im_size_min = np.min(im_shape[0:2])
+        im_size_max = np.max(im_shape[0:2])
+        resize = float(target_size) / float(im_size_max)
+        # prevent bigger axis from being more than max_size:
+        # if np.round(resize * im_size_max) > max_size:
+        #     resize = float(max_size) / float(im_size_max)
+        if args.origin_size:
+            resize = 1
+
         if resize != 1:
             img = cv2.resize(img, None, None, fx=resize, fy=resize, interpolation=cv2.INTER_LINEAR)
+            # 0:width, 1:height
+            if img.shape[1] >= img.shape[0]:
+                img = cv2.copyMakeBorder(img, 0, img.shape[1] - img.shape[0], 0, 0, cv2.BORDER_CONSTANT, 0)
+            else:
+                img = cv2.copyMakeBorder(img, 0, 0, 0, img.shape[0] - img.shape[1], cv2.BORDER_CONSTANT, 0)
+
+        # cv2.imshow("img", img.astype(np.uint8))
+        # cv2.waitKey(0)
         im_height, im_width, _ = img.shape
         scale = torch.Tensor([img.shape[1], img.shape[0], img.shape[1], img.shape[0]])
         img -= (104, 117, 123)
@@ -143,8 +158,8 @@ if __name__ == '__main__':
         scores = scores[inds]
 
         # keep top-K before NMS
-        # order = scores.argsort()[::-1][:args.top_k]
         order = scores.argsort()[::-1]
+        # order = scores.argsort()[::-1][:args.top_k]
         boxes = boxes[order]
         landms = landms[order]
         scores = scores[order]
@@ -152,7 +167,7 @@ if __name__ == '__main__':
         # do NMS
         dets = np.hstack((boxes, scores[:, np.newaxis])).astype(np.float32, copy=False)
         keep = py_cpu_nms(dets, args.nms_threshold)
-
+        # keep = nms(dets, args.nms_threshold,force_cpu=args.cpu)
         dets = dets[keep, :]
         landms = landms[keep]
 
@@ -163,23 +178,29 @@ if __name__ == '__main__':
         dets = np.concatenate((dets, landms), axis=1)
         _t['misc'].toc()
 
-        # save dets
-        if args.dataset == "FDDB":
-            fw.write('{:s}\n'.format(img_name))
-            fw.write('{:.1f}\n'.format(dets.shape[0]))
-            for k in range(dets.shape[0]):
-                xmin = dets[k, 0]
-                ymin = dets[k, 1]
-                xmax = dets[k, 2]
-                ymax = dets[k, 3]
-                score = dets[k, 4]
-                w = xmax - xmin + 1
-                h = ymax - ymin + 1
-                # fw.write('{:.3f} {:.3f} {:.3f} {:.3f} {:.10f}\n'.format(xmin, ymin, w, h, score))
-                fw.write('{:d} {:d} {:d} {:d} {:.10f}\n'.format(int(xmin), int(ymin), int(w), int(h), score))
+        # --------------------------------------------------------------------
+        save_name = args.save_folder + img_name[:-4] + ".txt"
+        dirname = os.path.dirname(save_name)
+        if not os.path.isdir(dirname):
+            os.makedirs(dirname)
+        with open(save_name, "w") as fd:
+            bboxs = dets
+            file_name = os.path.basename(save_name)[:-4] + "\n"
+            bboxs_num = str(len(bboxs)) + "\n"
+            fd.write(file_name)
+            fd.write(bboxs_num)
+            for box in bboxs:
+                x = int(box[0])
+                y = int(box[1])
+                w = int(box[2]) - int(box[0])
+                h = int(box[3]) - int(box[1])
+                confidence = str(box[4])
+                line = str(x) + " " + str(y) + " " + str(w) + " " + str(h) + " " + confidence + " \n"
+                fd.write(line)
+
         print('im_detect: {:d}/{:d} forward_pass_time: {:.4f}s misc: {:.4f}s'.format(i + 1, num_images, _t['forward_pass'].average_time, _t['misc'].average_time))
 
-        # show image
+        # save image
         if args.save_image:
             for b in dets:
                 if b[4] < args.vis_thres:
@@ -204,4 +225,3 @@ if __name__ == '__main__':
             name = "./results/" + str(i) + ".jpg"
             cv2.imwrite(name, img_raw)
 
-    fw.close()
