@@ -1,3 +1,4 @@
+# net.py contains basic blocks for building RetinaFace network such as SSH, FPN, conv_bn
 import torch
 import torch.nn as nn
 import torch.nn.functional as F

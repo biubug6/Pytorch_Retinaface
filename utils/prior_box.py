@@ -1,3 +1,4 @@
+# This class generate prior boxes (anchor boxes) for each cell in feature map
 import torch
 from itertools import product as product
 from math import ceil

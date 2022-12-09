@@ -1,20 +1,11 @@
-from __future__ import print_function
-import os
 import argparse
 import torch
-import torch.backends.cudnn as cudnn
-import numpy as np
-from dataset import cfg_mnet, cfg_re50
-from layers.functions.prior_box import PriorBox
-from utils.nms.py_cpu_nms import py_cpu_nms
-import cv2
+from config import config as cfg
 from models.retinaface import RetinaFace
-from utils.box_utils import decode, decode_landm
-from utils.timer import Timer
 
 
 parser = argparse.ArgumentParser(description='Test')
-parser.add_argument('-m', '--trained_model', default='./weights/Resnet50_Final.pth',
+parser.add_argument('-m', '--trained_model', default='/home/d/Downloads/Resnet50_Final.pth',
                     type=str, help='Trained state_dict file path to open')
 parser.add_argument('--network', default='resnet50', help='Backbone network mobile0.25 or resnet50')
 parser.add_argument('--long_side', default=640,
@@ -62,11 +53,6 @@ def load_model(model, pretrained_path, load_to_cpu):
 
 if __name__ == '__main__':
     torch.set_grad_enabled(False)
-    cfg = None
-    if args.network == "mobile0.25":
-        cfg = cfg_mnet
-    elif args.network == "resnet50":
-        cfg = cfg_re50
     # net and model
     net = RetinaFace(cfg=cfg, phase = 'test')
     net = load_model(net, args.trained_model, args.cpu)
@@ -77,7 +63,7 @@ if __name__ == '__main__':
     net = net.to(device)
 
     # ------------------------ export -----------------------------
-    output_onnx = 'FaceDetector.onnx'
+    output_onnx = 'weights/model_origin.onnx'
     print("==> Exporting model to ONNX format at '{}'".format(output_onnx))
     input_names = ["input"]
     output_names = ["output", "outputt", "outputtt"]

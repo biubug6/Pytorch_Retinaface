@@ -4,7 +4,7 @@
 # Licensed under The MIT License [see LICENSE for details]
 # Written by Ross Girshick
 # --------------------------------------------------------
-
+# NMS function for filter predicted boxes by intersection over union between boxes
 import numpy as np
 
 def py_cpu_nms(dets, thresh):

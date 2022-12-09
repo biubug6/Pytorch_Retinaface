@@ -1,3 +1,4 @@
+# Detail about RetinaFace model is in RetinaFace class. The class gets Heads and basic blocks from net.py to form the network
 import torch
 import torch.nn as nn
 import torchvision.models._utils as _utils

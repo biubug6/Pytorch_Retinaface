@@ -7,7 +7,7 @@ config = {
     "box_weight": 0.5,
     "class_weight": 2.0,
     "landmark_weight": 1.5,
-    "batch_size": 4,
+    "batch_size": 8,
     "epoch": 100,
     "image_size": 640,
     "pretrain": False,
