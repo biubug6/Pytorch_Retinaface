@@ -8,7 +8,8 @@ from collections import OrderedDict
 from models.net import MobileNetV1 as MobileNetV1
 from models.net import FPN as FPN
 from models.net import SSH as SSH
-
+from utils.box_utils import decode_tensors, decode_landm_tensors
+from layers.functions.prior_box import PriorBox
 
 
 class ClassHead(nn.Module):
@@ -46,10 +47,19 @@ class LandmarkHead(nn.Module):
         return out.view(out.shape[0], -1, 10)
 
 class RetinaFace(nn.Module):
-    def __init__(self, cfg = None, phase = 'train'):
+    def __init__(self, cfg = None, phase = 'train', image_size = None):
         """
-        :param cfg:  Network related settings.
-        :param phase: train or test.
+        Parameters
+        ----------
+        cfg : dict
+            A dictionary containing the configuration parameters
+        phase : str
+            Phase of the model, possible values are: train, test and test-decode
+            In test-decode mode, both bboxes and landmarks from the network are decoded
+            so that the coordinates are scaled between 0..1. In this mode the image_size
+            needs to be given.
+        image_size: pair
+            Image size is needed for decoding coordinates, required if test-decode mode.
         """
         super(RetinaFace,self).__init__()
         self.phase = phase
@@ -86,6 +96,20 @@ class RetinaFace(nn.Module):
         self.BboxHead = self._make_bbox_head(fpn_num=3, inchannels=cfg['out_channel'])
         self.LandmarkHead = self._make_landmark_head(fpn_num=3, inchannels=cfg['out_channel'])
 
+        if phase == 'test-decode':
+            # Calculate the parameters required for decoding bboxes and landmarks, and store
+            # the values for later use.
+            if image_size is None:
+                print('Image size needs to be given in onnx-phase')
+            priorbox = PriorBox(cfg, image_size)
+            cx, cy, s_kx, s_ky = priorbox.create_anchors(separated_variables=True)
+            self.register_buffer('cx', torch.tensor(cx, dtype=torch.float32).unsqueeze(0))
+            self.register_buffer('cy', torch.tensor(cy, dtype=torch.float32).unsqueeze(0))
+            self.register_buffer('s_kx', torch.tensor(s_kx, dtype=torch.float32).unsqueeze(0))
+            self.register_buffer('s_ky', torch.tensor(s_ky, dtype=torch.float32).unsqueeze(0))
+            self.register_buffer('variances', torch.tensor(cfg['variance'], dtype=torch.float32))
+            del priorbox, cx, cy, s_kx, s_ky
+
     def _make_class_head(self,fpn_num=3,inchannels=64,anchor_num=2):
         classhead = nn.ModuleList()
         for i in range(fpn_num):
@@ -120,8 +144,19 @@ class RetinaFace(nn.Module):
         classifications = torch.cat([self.ClassHead[i](feature) for i, feature in enumerate(features)],dim=1)
         ldm_regressions = torch.cat([self.LandmarkHead[i](feature) for i, feature in enumerate(features)], dim=1)
 
+        #bbox_regressions = torch.arange(1*16800*4, dtype=torch.float32).reshape((1, 16800, 4))
+
         if self.phase == 'train':
             output = (bbox_regressions, classifications, ldm_regressions)
-        else:
+        elif self.phase == 'test':
             output = (bbox_regressions, F.softmax(classifications, dim=-1), ldm_regressions)
+        elif self.phase == 'test-decode':
+            output = (
+                decode_tensors(bbox_regressions, self.cx, self.cy, self.s_kx, self.s_ky, self.variances),
+                F.softmax(classifications, dim=-1),
+                decode_landm_tensors(ldm_regressions, self.cx, self.cy, self.s_kx, self.s_ky, self.variances)
+            )
+        else:
+            print("Possible values for phase are: train, text or test-decode")
+            return -1
         return output

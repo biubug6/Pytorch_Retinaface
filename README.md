@@ -32,7 +32,9 @@ We also provide a set of Face Detector for edge device in [here](https://github.
 ### Contents
 - [Installation](#installation)
 - [Training](#training)
+- [Pre-trained models](#pre-trained-models)
 - [Evaluation](#evaluation)
+- [Exporting Model to ONNX](#exporting-model-to-onnx)
 - [TensorRT](#tensorrt)
 - [References](#references)
 
@@ -69,13 +71,8 @@ Link: from [google cloud](https://drive.google.com/open?id=11UGV3nbVv1x9IC--_tK3
 
 ## Training
 We provide restnet50 and mobilenet0.25 as backbone network to train model.
-We trained Mobilenet0.25 on imagenet dataset and get 46.58%  in top 1. If you do not wish to train the model, we also provide trained model. Pretrain model  and trained model are put in [google cloud](https://drive.google.com/open?id=1oZRSG0ZegbVkVwUd8wUIQx8W7yfZ_ki1) and [baidu cloud](https://pan.baidu.com/s/12h97Fy1RYuqMMIV-RpzdPg) Password: fstq . The model could be put as follows:
-```Shell
-  ./weights/
-      mobilenet0.25_Final.pth
-      mobilenetV1X0.25_pretrain.tar
-      Resnet50_Final.pth
-```
+We trained Mobilenet0.25 on imagenet dataset and get 46.58%  in top 1.
+
 1. Before training, you can check network configuration (e.g. batch_size, min_sizes and steps etc..) in ``data/config.py and train.py``.
 
 2. Train the model using WIDER FACE:
@@ -84,6 +81,14 @@ We trained Mobilenet0.25 on imagenet dataset and get 46.58%  in top 1. If you do
   CUDA_VISIBLE_DEVICES=0 python train.py --network mobile0.25
   ```
 
+## Pre-trained Models
+If you do not wish to train the model, we also provide trained models, these can be downloaded from [google cloud](https://drive.google.com/open?id=1oZRSG0ZegbVkVwUd8wUIQx8W7yfZ_ki1) and [baidu cloud](https://pan.baidu.com/s/12h97Fy1RYuqMMIV-RpzdPg) Password: fstq. Trained models should be placed in the `weights` directory, as follows:
+```Shell
+  ./weights/
+      mobilenet0.25_Final.pth
+      mobilenetV1X0.25_pretrain.tar
+      Resnet50_Final.pth
+```
 
 ## Evaluation
 ### Evaluation widerface val
@@ -113,6 +118,18 @@ python test_fddb.py --trained_model weight_file --network mobile0.25 or resnet50
 3. Download [eval_tool](https://bitbucket.org/marcopede/face-eval) to evaluate the performance.
 
 <p align="center"><img src="curve/1.jpg" width="640"\></p>
+
+## Exporting Model to ONNX
+
+You can export the models to ONNX as follows:
+```Shell
+python convert_to_onnx.py
+```
+
+Exported ONNX model can be used for inference as follows:
+```Shell
+python detect_onnx.py
+```
 
 ## TensorRT
 -[TensorRT](https://github.com/wang-xinyu/tensorrtx/tree/master/retinaface)

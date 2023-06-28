@@ -14,9 +14,10 @@ from utils.timer import Timer
 
 
 parser = argparse.ArgumentParser(description='Test')
-parser.add_argument('-m', '--trained_model', default='./weights/mobilenet0.25_Final.pth',
+parser.add_argument('-m', '--trained_model', default='./weights/Resnet50_Final.pth',
                     type=str, help='Trained state_dict file path to open')
-parser.add_argument('--network', default='mobile0.25', help='Backbone network mobile0.25 or resnet50')
+parser.add_argument('-b', '--batch_size', default=1, help='Network batch size')
+parser.add_argument('--network', default='resnet50', help='Backbone network mobile0.25 or resnet50')
 parser.add_argument('--long_side', default=640, help='when origin_size is false, long_side is scaled size(320 or 640 for long side)')
 parser.add_argument('--cpu', action="store_true", default=True, help='Use cpu inference')
 
@@ -67,11 +68,11 @@ if __name__ == '__main__':
     elif args.network == "resnet50":
         cfg = cfg_re50
     # net and model
-    net = RetinaFace(cfg=cfg, phase = 'test')
+    net = RetinaFace(cfg=cfg, phase = 'test-decode', image_size = (args.long_side, args.long_side))
     net = load_model(net, args.trained_model, args.cpu)
     net.eval()
     print('Finished loading model!')
-    print(net)
+    #print(net)
     device = torch.device("cpu" if args.cpu else "cuda")
     net = net.to(device)
 
@@ -79,10 +80,10 @@ if __name__ == '__main__':
     output_onnx = 'FaceDetector.onnx'
     print("==> Exporting model to ONNX format at '{}'".format(output_onnx))
     input_names = ["input0"]
-    output_names = ["output0"]
-    inputs = torch.randn(1, 3, args.long_side, args.long_side).to(device)
+    output_names = ["bboxes", "classes", "landmarks"]
+    inputs = torch.randn(args.batch_size, 3, args.long_side, args.long_side).to(device)
 
-    torch_out = torch.onnx._export(net, inputs, output_onnx, export_params=True, verbose=False,
+    torch_out = torch.onnx.export(net, inputs, output_onnx, export_params=True, verbose=False,
                                    input_names=input_names, output_names=output_names)
 
 

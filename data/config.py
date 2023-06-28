@@ -1,5 +1,13 @@
 # config.py
 
+cfg_inference = {
+    'name': 'inference',
+    'min_sizes': [[16, 32], [64, 128], [256, 512]],
+    'steps': [8, 16, 32],
+    'variance': [0.1, 0.2],
+    'clip': False
+}
+
 cfg_mnet = {
     'name': 'mobilenet0.25',
     'min_sizes': [[16, 32], [64, 128], [256, 512]],

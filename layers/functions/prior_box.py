@@ -7,6 +7,7 @@ from math import ceil
 class PriorBox(object):
     def __init__(self, cfg, image_size=None, phase='train'):
         super(PriorBox, self).__init__()
+        print(cfg)
         self.min_sizes = cfg['min_sizes']
         self.steps = cfg['steps']
         self.clip = cfg['clip']
@@ -14,7 +15,7 @@ class PriorBox(object):
         self.feature_maps = [[ceil(self.image_size[0]/step), ceil(self.image_size[1]/step)] for step in self.steps]
         self.name = "s"
 
-    def forward(self):
+    def create_anchors(self, separated_variables=False):
         anchors = []
         for k, f in enumerate(self.feature_maps):
             min_sizes = self.min_sizes[k]
@@ -27,8 +28,20 @@ class PriorBox(object):
                     for cy, cx in product(dense_cy, dense_cx):
                         anchors += [cx, cy, s_kx, s_ky]
 
-        # back to torch land
-        output = torch.Tensor(anchors).view(-1, 4)
+        if separated_variables:
+            anchors = np.array(anchors).reshape(-1, 4)
+            cx = anchors[:, 0].copy().reshape(-1, 1)
+            cy = anchors[:, 1].copy().reshape(-1, 1)
+            s_kx = anchors[:, 2].copy().reshape(-1, 1)
+            s_ky = anchors[:, 3].copy().reshape(-1, 1)
+            del anchors
+            return cx, cy, s_kx, s_ky
+        else:
+            return anchors
+
+    def forward(self):
+        # Torch
+        output = torch.Tensor(self.create_anchors()).view(-1, 4)
         if self.clip:
             output.clamp_(max=1, min=0)
         return output

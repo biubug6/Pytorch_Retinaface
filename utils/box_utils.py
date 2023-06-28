@@ -226,6 +226,7 @@ def decode(loc, priors, variances):
     boxes[:, 2:] += boxes[:, :2]
     return boxes
 
+
 def decode_landm(pre, priors, variances):
     """Decode landm from predictions using priors to undo
     the encoding we did for offset regression at train time.
@@ -246,6 +247,77 @@ def decode_landm(pre, priors, variances):
                         ), dim=1)
     return landms
 
+def decode_tensors(pre, cx, cy, s_kx, s_ky, variances):
+    """
+    Decode bbox locations from predictions using priors (anchor boxes).
+    
+    Parameters
+    ----------
+    pre : tensor
+        Tensor containing the predictions from the network
+    cx : tensor
+        Anchor box parameter
+    cy : tensor
+        Anchor box parameter
+    s_kx : tensor
+        Anchor box parameter
+    s_ky = tensor
+        Anchor box parameter
+    variances : tensor
+        Variance parameter
+
+    Return
+    ------
+    Bounding box coordinates : tensor
+        [x1, y1, x2, y2], scaled between 0..1
+    """
+    x1 = cx + pre[:, :, [0]] * variances[0] * s_kx
+    y1 = cy + pre[:, :, [1]] * variances[0] * s_ky
+    x2 = s_kx * torch.exp(pre[:, :, [2]] * variances[1])
+    y2 = s_ky * torch.exp(pre[:, :, [3]] * variances[1])
+    x1 -= x2 / 2
+    y1 -= y2 /2
+    x2 += x1
+    y2 += y1
+    bbox = torch.cat((x1, y1, x2, y2), dim=2)
+    return bbox
+
+def decode_landm_tensors(pre, cx, cy, s_kx, s_ky, variances):
+    """
+    Decode landmark locations from predictions using priors (anchor boxes).
+    
+    Parameters
+    ----------
+    pre : tensor
+        Tensor containing the predictions from the network
+    cx : tensor
+        Anchor box parameter
+    cy : tensor
+        Anchor box parameter
+    s_kx : tensor
+        Anchor box parameter
+    s_ky = tensor
+        Anchor box parameter
+    variances : tensor
+        Variance parameter
+
+    Return
+    ------
+    Bounding box coordinates : tensor
+        [x1 y1 x2 y2 ... x9 y9], scaled between 0..1
+    """
+    landms = torch.cat((
+        cx + pre[:, :, [0]] * variances[0] * s_kx,
+        cy + pre[:, :, [1]] * variances[0] * s_ky,
+        cx + pre[:, :, [2]] * variances[0] * s_kx,
+        cy + pre[:, :, [3]] * variances[0] * s_ky,
+        cx + pre[:, :, [4]] * variances[0] * s_kx,
+        cy + pre[:, :, [5]] * variances[0] * s_ky,
+        cx + pre[:, :, [6]] * variances[0] * s_kx,
+        cy + pre[:, :, [7]] * variances[0] * s_ky,
+        cx + pre[:, :, [8]] * variances[0] * s_kx,
+        cy + pre[:, :, [9]] * variances[0] * s_ky), dim=2)
+    return landms
 
 def log_sum_exp(x):
     """Utility function for computing log_sum_exp while determining
